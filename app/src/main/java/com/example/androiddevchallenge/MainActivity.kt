@@ -17,45 +17,82 @@ package com.example.androiddevchallenge
 
 import android.os.Bundle
 import androidx.activity.compose.setContent
+import androidx.activity.viewModels
 import androidx.appcompat.app.AppCompatActivity
-import androidx.compose.material.MaterialTheme
-import androidx.compose.material.Surface
-import androidx.compose.material.Text
-import androidx.compose.runtime.Composable
-import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.material.*
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.navigation.compose.NavHost
+import androidx.navigation.compose.composable
+import androidx.navigation.compose.navigate
+import androidx.navigation.compose.rememberNavController
+import com.example.androiddevchallenge.constants.Routes
+import com.example.androiddevchallenge.ui.components.MainScaffold
+import com.example.androiddevchallenge.ui.pages.Add
+import com.example.androiddevchallenge.ui.pages.List
+import com.example.androiddevchallenge.ui.pages.Detail
+import com.example.androiddevchallenge.ui.pages.My
 import com.example.androiddevchallenge.ui.theme.MyTheme
+import com.example.androiddevchallenge.viewModels.CatListViewModel
+import dev.chrisbanes.accompanist.insets.ProvideWindowInsets
+import kotlinx.coroutines.launch
 
 class MainActivity : AppCompatActivity() {
+    private val listViewModel by viewModels<CatListViewModel>()
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+
         setContent {
             MyTheme {
-                MyApp()
+                ProvideWindowInsets(consumeWindowInsets = false) {
+                    val scaffoldState = rememberScaffoldState()
+                    val scope = rememberCoroutineScope()
+                    val navController = rememberNavController()
+
+                    MainScaffold(
+                        scaffoldState = scaffoldState,
+                        onNavButtonClick = {
+                            scope.launch {
+                                scaffoldState.drawerState.open()
+                            }
+                        },
+                        onNavigate = {
+                            navController.navigate(it)
+                            scope.launch {
+                                scaffoldState.drawerState.close()
+                            }
+                        },
+                        onFloatingActionButtonClick = {
+                            navController.navigate(Routes.Add)
+                        },
+                    ) {
+                        NavHost(navController = navController, startDestination = Routes.List) {
+                            composable(Routes.List) {
+                                List(
+                                    onItemClick = {
+                                        navController.navigate(Routes.detailPath(it))
+                                    }
+                                )
+                            }
+                            composable(Routes.Detail) {
+                                val id = it.arguments?.getString("id")
+                                if (id != null) {
+                                    Detail(id.toInt())
+                                } else {
+                                    Text(text = "detail error")
+                                }
+
+                            }
+                            composable(Routes.Add) {
+                                Add()
+                            }
+                            composable(Routes.My) {
+                                My()
+                            }
+                        }
+                    }
+                }
             }
         }
-    }
-}
-
-// Start building your app here!
-@Composable
-fun MyApp() {
-    Surface(color = MaterialTheme.colors.background) {
-        Text(text = "Ready... Set... GO!")
-    }
-}
-
-@Preview("Light Theme", widthDp = 360, heightDp = 640)
-@Composable
-fun LightPreview() {
-    MyTheme {
-        MyApp()
-    }
-}
-
-@Preview("Dark Theme", widthDp = 360, heightDp = 640)
-@Composable
-fun DarkPreview() {
-    MyTheme(darkTheme = true) {
-        MyApp()
     }
 }
